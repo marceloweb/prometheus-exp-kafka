@@ -14,13 +14,6 @@ RUN go build -o /prometheus-kafka-adapter
 
 FROM alpine:3.11
 
-RUN echo "@edge http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories && \
-    echo "@edgecommunity http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories && \
-    apk add --no-cache 'librdkafka@edgecommunity>=1.3.0'
-
-COPY --from=build /src/prometheus-kafka-adapter/schemas/metric.avsc /schemas/metric.avsc
-COPY --from=build /prometheus-kafka-adapter /
-
 COPY prometheus /prometheus
 
 RUN cd /prometheus && \
@@ -36,13 +29,19 @@ RUN cd /prometheus && \
     chgrp -R 0 /opt && \
     chmod -R g=u /opt
 
-WORKDIR /usr/share/prometheus
-
 VOLUME /opt/prometheus
 VOLUME /etc/prometheus
 
-EXPOSE 9090
+RUN echo "@edge http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories && \
+    echo "@edgecommunity http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories && \
+    apk add --no-cache 'librdkafka@edgecommunity>=1.3.0'
+
+COPY --from=build /src/prometheus-kafka-adapter/schemas/metric.avsc /schemas/metric.avsc
+COPY --from=build /prometheus-kafka-adapter /
+
+EXPOSE 9090 8080
 
 ENTRYPOINT ["/bin/prometheus"]
-CMD ["--config.file=/etc/prometheus/prometheus.yml", \
+CMD [--config.file=/etc/prometheus/prometheus.yml", \
      "--storage.tsdb.path=/opt/prometheus"]
+
